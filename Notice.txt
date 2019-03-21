@@ -1,0 +1,104 @@
+Class MapSelect:
+Classe permettant de gérer la selection des cartes.
+
+    mapListPrinter:
+Récupère la liste des cartes et l'affiche.
+
+    mapListSelecter:
+Méthode permettant la selection de la carte et son affichage.
+Retourne la carte sous forme de str. et la liste des du nom des cartes existantes.
+
+    loadingMap:
+Méthode chargé de charger la map suivant la situation de l'ancienne partie.
+Retourne la map utilisé lors de la partie sauvegardé.
+
+
+--------------------------------------------------------------------------------
+
+
+Fichier Tools.py:
+
+
+    fileListMaker(path="./"):
+Fonction recupérant la liste des fichiers present dans le dossier voulu
+et la retournant.
+
+path: Chemin d'accès terminant par '/'
+return fileInDirectory (La liste des fichiers dans un répertoire)
+
+
+    extensionRemover(fileList, extension):
+Fonction permettant de supprimer les extensions de fichiers contenus
+dans une liste. Prend en paramètre la liste ainsi que le type d'extension.
+(format '.ext')
+
+return fileListWithoutExt (La liste des fichiers dans un répertoire sans les extensions.)
+
+
+    folderCleanerByExtKeeper(path="./", extension=".py"):
+!!!Risque sérieux de supression de fichiers!!!
+
+Fonction permettant de supprimer les fichiers dont l'extension ne correspond
+pas à celle entrée dans ladite fonction.
+
+path: Chemin d'accès finissant par '/'
+extension: Extension des fichiers à garder format '.ext'
+
+
+    inputWithNumberConstraint(hiestNumber, lowestNumber=0,
+answer="\nSaisissez le numéro de la carte que vous voulez jouer: "):
+Retourne le nuombre choisi par l'utilisateur entrant dans des critères précis:
+hiestNumber: Le nombre le plus haut
+lowestNumber: Le nombre le plus bas.
+
+return number (Le numéro choisi)
+
+
+    caracterListChecker(list, sensingObject):
+Retourne une liste des index des String contenant le caractère cherché.
+
+return indexlist, stringList (liste des index et liste des strings contenants les caractères.)
+
+
+    caracterStringChecker(string, sensingObject):
+Retourne l'index d'un caractère précis dans une chaine de caratère.
+Utiliser une boucle for pour vérifier plusieurs chaines de caractère.
+
+return indexCaracter
+
+
+--------------------------------------------------------------------------------
+
+
+Class TurnAndTurn:
+
+
+    map_refresh(self, map):
+Dispatche les infos reçu de la classe MapSelect:
+
+si la variable contient 3 infos:
+
+self._mapUsed: liste de string contenant le carte
+self._titleMap: Nom de la carte joué.
+self._mapChoiced: Numéro de la carte joué.
+
+sinon:
+self._mapUsed: liste de string contenant le carte
+self._mapChoiced = ""
+self._titleMap = ""
+
+
+    mapWithoutX(self):
+Création d'une carte sans le "X" qui servira de base pour le collage des bots
+lors de leurs déplacements.
+
+return self._mapOriginal (carte sans le "X")
+
+
+    cleanMap(self):
+self._mapUsed = self._mapOriginal
+
+
+    pastePlayer(self):
+Mets un joueur sur la carte quand la méthode est appellé.
+Retourne self._mapMultiplayer, bot, positionY, positionX
