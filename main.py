@@ -1,9 +1,10 @@
 # coding: utf-8
 
-from Data import infoClient, msgList
+from Data import infoClient, msgList, playerDict
 from Server import Server, SharedInfo
 from MapSelect import MapSelect
 from Turn import TurnAndTurn
+from Player import Player
 import socket
 
 # Acceptation des clients.
@@ -34,7 +35,7 @@ try:
             name = f"Player {len(infoClient) + 1}"
             infoClient[(id, name)] = info[0]
             info[0].send("Connexion établie".encode("utf-8"))
-            # send to others clients when client join.
+            # Envoi aux autre clients quand un message est reçu
             for player in infoClient.values():
                 if player != id:
                     player.send(f"le {name} s'est connecté".encode("utf-8"))
@@ -42,9 +43,18 @@ try:
         except socket.timeout:
             if msgList[-1].upper() == "C":
                 server.searchBool = False
+
 except OSError:
     import Client
     Client.launchClient()
+
+# Une fois l'acceptation des clients terminé, trie des infos pour une utilitée
+# simplifiée
+
+for i, (player, socket_) in enumerate(infoClient.items()):
+
+    playerDict[f"player{i + 1}"] = player = Player(i, socket_)
+
 
 game = TurnAndTurn()
 game.map_refresh(mapUsed)
@@ -53,10 +63,13 @@ print(game._mapOriginal)
 game.cleanMap()
 print(game._mapUsed)
 
-for player, socket in infoClient.items():
-    game.pastePlayer()
-    socket.send("\n".join(game._mapUsed).encode())
+
+for i, (player, socket_) in enumerate(infoClient.items()):
+    bot = game.pastePlayer()[1]
+    playerDict[f"player{i + 1}"].bot = bot
+
 
 while 1:
-    game.inputChoice(game._playerIconUsed[0])
-    game.move(game._playerIconUsed[0])
+    for player in playerDict.values():
+        player.send(game.inputChoice(player.bot))
+        game.move(player.bot)

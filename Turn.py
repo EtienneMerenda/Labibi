@@ -138,7 +138,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
             self._playersInfos[bot] = {"turnNumber": turnNumberAndLastChoice, "positionY": positionY, "positionX": positionX, "moveChoice": []}
             self._mapUsed = pasteMe(bot)
 
-            return self._mapUsed
+            return self._mapUsed, bot
 
         elif cmd is "cut":
             self._mapUsed = cutMe(bot)
@@ -249,9 +249,8 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
 
         # Au premier tour, donne les indications sur la méthode pour entrer
         # les mouvements
-
         if self._playersInfos[bot]["turnNumber"][0] == 1:
-            input("\nVous avez choisi le niveau: {0}\n\n{1}\n\nVous pouvez \
+            ("\nVous avez choisi le niveau: {0}\n\n{1}\n\nVous pouvez \
 déplacer le robot à l'aide des commande:\
 \n  -N: pour aller vers le nord.\n  -S: pour aller vers le Sud.\n  -O: pour aller \
 vers l'Ouest.\n  -E: pour aller vers l'Est.\nVous entrerez ensuite le nombre \
