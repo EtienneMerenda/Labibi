@@ -71,5 +71,5 @@ for i, (player, socket_) in enumerate(infoClient.items()):
 
 while 1:
     for player in playerDict.values():
-        player.send(game.inputChoice(player.bot))
+        player.send(game.inputChoice(player.bot, player.address))
         game.move(player.bot)

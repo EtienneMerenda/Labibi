@@ -242,22 +242,20 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
         else:
             return None
 
-    def inputChoice(self, bot):
+    def inputChoice(self, bot, sock):
         """Récupère le déplacement voulu par le joueur"""
-
-        import time
 
         # Au premier tour, donne les indications sur la méthode pour entrer
         # les mouvements
         if self._playersInfos[bot]["turnNumber"][0] == 1:
-            ("\nVous avez choisi le niveau: {0}\n\n{1}\n\nVous pouvez \
+            sock.send(("\nVous avez choisi le niveau: {0}\n\n{1}\n\nVous pouvez \
 déplacer le robot à l'aide des commande:\
 \n  -N: pour aller vers le nord.\n  -S: pour aller vers le Sud.\n  -O: pour aller \
 vers l'Ouest.\n  -E: pour aller vers l'Est.\nVous entrerez ensuite le nombre \
 de cases que vous voulez faire parcourir au robot.\n\nVous avez la possiblité de \
 murer une porte avec la commande M suivi de la direction.\nOu de percer un mur \
 avec la commande P et la direction.\n\nVous pouvez quittez le\
- jeu en tapant 'Q' lors du choix de la direction".format(self._titleMap, "\n".join(self._mapUsed)))
+ jeu en tapant 'Q' lors du choix de la direction".format(self._titleMap, "\n".join(self._mapUsed))).encode("utf-8"))
             #input("\nLa partie va commencer dans 5 secondes.")
             #time.sleep(5)
 
@@ -270,7 +268,6 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
         avalaibleMove = []
 
         souroundingsDict = self.surroundingsChecker(bot)
-        print(souroundingsDict)
         for key, value in souroundingsDict.items():
             if value is " " or value is "." or value is "U":
                 avalaibleMove.append(key)
@@ -279,10 +276,9 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
             if value is "O" and avalaibleMove.count("P") == 0:
                 avalaibleMove.append("P")
         avalaibleMove.append("Q")
-        print(avalaibleMove)
         avalaibleMoveTxt = ""
         if "N" in avalaibleMove:
-                avalaibleMoveTxt += " -Aller au Nord\n"
+            avalaibleMoveTxt += " -Aller au Nord\n"
         if "S" in avalaibleMove:
             avalaibleMoveTxt += " -Aller au Sud\n"
         if "E" in avalaibleMove:
@@ -295,17 +291,18 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
             avalaibleMoveTxt += " -Percer\n"
         while boléen0 is False and moveInput[0] != "Q":
             try:
-                print("\n" + "\n".join(self._mapUsed))
-                move = input("\nChoisissez votre action:\n{}".format(avalaibleMoveTxt)).upper()
+                sock.send(("\n" + "\n".join(self._mapUsed)).encode("utf-8"))
+                sock.send(("\nChoisissez votre action:\n{}".format(avalaibleMoveTxt)).encode("utf-8"))
+                move = sock.recv(1024).decode("utf-8").upper()
                 if move[0] in avalaibleMove and len(move) == 1:
                     boléen0 = True
                     moveInput[0] = move
                     if move[0] == "Q":
                         return "Q"
                 else:
-                    print("Votre commande n'est pas bonne.\n")
+                    sock.send(("Votre commande n'est pas bonne.\n").encode("utf-8"))
             except IndexError:
-                print("Votre commande n'est pas bonne.\n")
+                sock.send(("Votre commande n'est pas bonne.\n").encode("utf-8"))
 
         while boléen1 is False:
             if move[0] in ["E", "O", "N", "S"]:
@@ -321,8 +318,8 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
                 if NbStep > 1:
                     while boléen1 is False and moveInput[0] != "Q":
                         try:
-                            nbStep = input("Vous partez vers {0}. vous pouvez \
-faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1))
+                            sock.send(("Vous partez vers {0}. vous pouvez faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1)).encode("utf-8"))
+                            nbStep = sock.recv(1024).decode("utf-8")
                             nbStep = int(nbStep)
 
                             if nbStep > 0 and nbStep <= NbStep:
@@ -331,11 +328,11 @@ faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1))
                                 self._playersInfos[bot]["moveChoice"].append(moveInput)
                                 self._playersInfos[bot]["turnNumber"][1] = moveInput
                             else:
-                                print("Votre saisie est invalide.\n")
+                                sock.send("Votre saisie est invalide.\n".encode("utf-8"))
                         except ValueError:
-                                print("Vous n'avez pas saisie un nombre.\n")
+                                sock.send("Vous n'avez pas saisie un nombre.\n".encode("utf-8"))
                 else:
-                    print("Vous ne pouvez pas aller dans cette direction.\n")
+                    sock.send("Vous ne pouvez pas aller dans cette direction.\n".encode("utf-8"))
 
             elif move[0] == "M":
 
@@ -343,7 +340,7 @@ faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1))
                 indexList = dictIndexGetter(doors, ".")
 
                 if len(indexList) is 0:
-                    print("Vous ne pouvez murer aucune porte à proximité.\n")
+                    sock.send("Vous ne pouvez murer aucune porte à proximité.\n".encode("utf-8"))
                 else:
                     direction = self.cardinalFullWord(indexList)
                     avalaibleDirectionTemp = ""
@@ -353,8 +350,8 @@ faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1))
 
                     avalaibleDirection = avalaibleDirectionTemp[:-2]
                     while boléen1 is False:
-                        wallDir = input("Vous avez choisi de murer. Vous pouvez le faire {}. Dans quelle\
- direction souhaitez vous le faire: ".format(avalaibleDirection)).upper()
+                        sock.send("Vous avez choisi de murer. Vous pouvez le faire {}. Dans quelle direction souhaitez vous le faire: ".format(avalaibleDirection).encode("utf-8"))
+                        wallDir = sock.recv(1024).decode("utf-8").upper()
                         if wallDir in indexList:
                             moveInput.append(wallDir)
                             self._playersInfos[bot]["moveChoice"].append(moveInput)
@@ -366,7 +363,7 @@ faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1))
                 wall = self.surroundingsChecker(bot, "all")
                 indexList = dictIndexGetter(wall, "O")
                 if len(indexList) is 0:
-                    print("Vous ne pouvez percer aucun mur à proximité.\n")
+                    sock.send("Vous ne pouvez percer aucun mur à proximité.\n".encode("utf-8"))
 
                 else:
                     direction = self.cardinalFullWord(indexList)
@@ -378,9 +375,10 @@ faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1))
                     avalaibleDirection = avalaibleDirectionTemp[:-2]
 
                     while boléen1 is False:
-                        drillDir = input("Vous avez choisi de percer. Vous \
+                        sock.send("Vous avez choisi de percer. Vous \
 pouvez le faire {}. Dans quelle direction souhaitez vous le faire: \
-".format(avalaibleDirection)).upper()
+".format(avalaibleDirection).encode("utf-8"))
+                        drillDir = sock.recv(1024).decode("utf-8").upper()
                         if drillDir in indexList:
                             moveInput.append(drillDir)
                             self._playersInfos[bot]["moveChoice"].append(moveInput)
