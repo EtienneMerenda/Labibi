@@ -28,18 +28,30 @@ try:
     while server.searchBool is True:
         # Début de l'acceptation de client
         try:
-            info = server.newClient(0.5)
-            update = SharedInfo(info[0])
+            chatCom = server.newClient(1)
+            gameCom = server.newClient(0.5)
+            update = SharedInfo(chatCom[0])
             update.start()
             id = update.getName()
-            name = f"Player {len(infoClient) + 1}"
-            infoClient[(id, name)] = info[0]
-            info[0].send("Connexion établie".encode("utf-8"))
+
+            playerObject = Player(len(playerDict) + 1)
+            playerObject.idThread = id
+            playerObject.chatCom = chatCom[0]
+            playerObject.gameCom = gameCom[0]
+
+            infoClient[id] = chatCom[0]
+
+            playerDict[f"player{len(playerDict) + 1}"] = playerObject
+
+            playerDict[f"player{len(playerDict)}"]\
+                .chatCom.send("Connexion établie".encode("utf-8"))
+            print(playerDict)
             # Envoi aux autre clients quand un message est reçu
-            for player in infoClient.values():
-                if player != id:
-                    player.send(f"le {name} s'est connecté".encode("utf-8"))
-            print(infoClient)
+            for player in playerDict.values():
+                if player.idThread != id:
+                    player.chatCom.send(f"le joueur {len(playerDict)} "
+                                        "s'est connecté".encode("utf-8"))
+
         except socket.timeout:
             if msgList[-1].upper() == "C":
                 server.searchBool = False
@@ -51,10 +63,6 @@ except OSError:
 # Une fois l'acceptation des clients terminé, trie des infos pour une utilitée
 # simplifiée
 
-for i, (player, socket_) in enumerate(infoClient.items()):
-
-    playerDict[f"player{i + 1}"] = player = Player(i, socket_)
-
 
 game = TurnAndTurn()
 game.map_refresh(mapUsed)
@@ -64,12 +72,15 @@ game.cleanMap()
 print(game._mapUsed)
 
 
-for i, (player, socket_) in enumerate(infoClient.items()):
+for i, player in enumerate(playerDict):
     bot = game.pastePlayer()[1]
     playerDict[f"player{i + 1}"].bot = bot
+    playerDict[f"player{i + 1}"].gameCom.send(f"Vous jouez le bot: {bot} et "
+                                              f"êtes le joueur {i + 1}."
+                                              "".encode("utf-8"))
 
 
 while 1:
     for player in playerDict.values():
-        player.send(game.inputChoice(player.bot, player.address))
+        game.inputChoice(player.bot, player.gameCom)
         game.move(player.bot)

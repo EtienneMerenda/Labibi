@@ -52,7 +52,7 @@ class SharedInfo(threading.Thread):
                 self._comEnd = True
                 self._com.send("END".encode())
             else:
-                msg = "{0}> {1}".format(id, msgClient)
+                msg = f"{id}: {msgClient}"
                 print(msg)
                 for cle in infoClient:
                     if cle != id:

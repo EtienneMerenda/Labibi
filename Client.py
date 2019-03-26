@@ -6,7 +6,8 @@ import threading
 from Tools import UnblockingInput
 import sys
 import time
-
+import select
+from Data import manager, runInput
 
 def launchClient(host='localhost', port=12800):
 
@@ -20,26 +21,22 @@ def launchClient(host='localhost', port=12800):
             threading.Thread.__init__(self)
             self._com = com
 
-        def getMsg(self):
-            return self.incomMsg
-
         def run(self):
             oldMsg = ""
-            while sharedInfo["exchange"]["receive"] is True:
+            while manager["exchange"]:
                 try:
                     self._com.settimeout(5)
-                    self.incomMsg = self._com.recv(1024).decode()
+                    manager["incomMsg"] = self._com.recv(1024).decode()
                     self._com.settimeout(None)
                 except socket.error:
                     pass
-                if self.incomMsg != oldMsg:
-                    print(self.incomMsg)
-                oldMsg = self.incomMsg
-                if not self.incomMsg or self.incomMsg == "END":
+                if manager["incomMsg"] != oldMsg:
+                    print(manager["incomMsg"])
+                oldMsg = manager["incomMsg"]
+                if not manager["incomMsg"] or manager["incomMsg"] == "END":
                     print("Reception de la commande d'arret du client de la part"
                           " du serveur")
-                    sharedInfo["exchange"]["receive"] = False
-                    sharedInfo["exchange"]["sending"] = False
+                    manager["exchange"] = False
 
             self._com.close()
             exit()
@@ -47,61 +44,84 @@ def launchClient(host='localhost', port=12800):
     class ThreadSending(threading.Thread):
         """Sending object manager. Works with input hand-made by Bibi (use msvcrt)"""
 
-        def __init__(self, com):
+        def __init__(self, com, comMove):
 
             threading.Thread.__init__(self)
             self._com = com
+            self._comMove = comMove
             self.send = True
+            self.break_ = False
 
         def run(self):
 
             import time
 
-            while sharedInfo["exchange"]["sending"] is True:
-                # Start input with delay, free
-                sendingMsg = UnblockingInput("Message à envoyer: ")
-                sendingMsg.start()
-                # While user don't hit 'return' or 'escp', thread stay alive.
-                while sendingMsg.isAlive() is True and sendingMsg.closeInput\
-                        is False and sharedInfo["exchange"]["sending"] is True:
-                    time.sleep(0.1)
-                    if sendingMsg.closeClient is True:
-                        print("Le client va se fermer sur demande de"
-                              "l'utilisateur.")
-                        sharedInfo["exchange"]["sending"] = False
-                        sharedInfo["exchange"]["receive"] = False
-                        self._com.send("Q".encode())
-                if sharedInfo["exchange"]["sending"] is True:
-                    msg = sendingMsg.getInput()
+            while manager["exchange"]:
+                while runInput[0]:
+                    # Start input with delay, free
+                    self.sendingMsg = UnblockingInput("Message à envoyer: ")
+                    self.sendingMsg.start()
+                    # While user don't hit 'return' or 'escp', thread stay alive.
+                    while self.sendingMsg.isAlive():
+                        time.sleep(0.1)
+                        if manager["incomMsg"] is "Q":
+                            print("Le client va se fermer sur demande de"
+                                  "l'utilisateur.")
+                            manager["exchange"] = False
+
+                            self._com.send("Q".encode())
+
+                    msg = self.sendingMsg.getInput()
                     self._com.send(msg.encode())
 
-    def interupt(self):
-        """Function called when user close the windows"""
-        comm.send("Q".encode())
-        sys.exit(0)
 
-    def getMsg(self):
-        return th_R.getMsg()
+        def interupt(self):
+            """Function called when user close the windows"""
+            self._com.send("Q".encode())
+            sys.exit(0)
 
-    sharedInfo = {"exchange": {"sending": True, "receive": True}}
+        def is_Alive(self):
+            return self.sendingMsg.isAlive()
 
-    comm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    comTchat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    comGame = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
-        comm.connect((host, port))
+        comTchat.connect((host, port))
+        comGame.connect((host, port))
+
     except socket.error:
         print("La connexion a échoué.")
         sys.exit()
 
 
+
     # Thread are assigned and launched
-    th_E = ThreadSending(comm)
-    th_R = ThreadReception(comm)
+    th_E = ThreadSending(comTchat, comGame)
+    th_R = ThreadReception(comTchat)
     th_R.start()
     time.sleep(0.5)
     th_E.start()
 
     while 1:
-        if sharedInfo["exchange"]["receive"] is False and\
-           sharedInfo["exchange"]["sending"] is False:
+        if manager["exchange"] is False:
             sys.exit(0)
+
+        try:
+            rlist, wlist, xlist = select.select([comGame], [], [], 0.05)
+        except select.error:
+            pass
+        try:
+            msg = rlist[0].recv(1024).decode("utf-8")
+            runInput[0] = False
+            print(msg)
+            while th_E.is_Alive():
+                print(time.time())
+            r = input("> oui ? :")
+            rlist[0].send(r.encode("utf-8"))
+            runInput[0] = True
+        except IndexError:
+            pass
+
+        msg = comGame.recv(1024).decode("utf-8")
+        print(msg)

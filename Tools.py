@@ -2,6 +2,8 @@
 
 from threading import Thread
 import msvcrt
+from Data import runInput
+
 
 def fileListMaker(path="./"):
     """Fonction recupérant la liste des fichiers present dans le dossier voulu
@@ -132,34 +134,37 @@ class UnblockingInput(Thread):
         self.txt = txt
         self.input = ""
         self.closeInput = False
-        self.closeClient = False
+        self.userInput = []
 
     def run(self):
-
-        self.userInput = []
 
         for char in self.txt:
             msvcrt.putwch(char)
 
-        while self.closeInput is False:
-            hitChar = msvcrt.getwch()
-            if hitChar == "\r":
-                self.closeInput = True
-                msvcrt.putwch("\n")
-            elif hitChar == '\x1b':
-                self.closeInput = True
-                self.closeClient = True
-            elif hitChar == "\x08":
-                if len(self.userInput) > 0:
-                    msvcrt.putwch("\x08")
-                    msvcrt.putwch(" ")
-                    msvcrt.putwch("\x08")
-                    del self.userInput[-1]
-                else:
-                    pass
+        while runInput[0] is True and self.closeInput is False:
+            if runInput[0] is True:
+                if msvcrt.kbhit():
+                    hitChar = msvcrt.getwch()
+                    if hitChar == "\r":
+                        self.closeInput = True
+                        msvcrt.putwch("\n")
+                    elif hitChar == '\x1b':
+                        self.closeInput = True
+                        self.closeClient = True
+                    elif hitChar == "\x08":
+                        if len(self.userInput) > 0:
+                            msvcrt.putwch("\x08")
+                            msvcrt.putwch(" ")
+                            msvcrt.putwch("\x08")
+                            del self.userInput[-1]
+                        else:
+                            pass
+                    else:
+                        self.userInput.append(hitChar)
+                        msvcrt.putwch(hitChar)
+
             else:
-                self.userInput.append(hitChar)
-                msvcrt.putwch(hitChar)
+                pass
 
         self.input = "".join(self.userInput)
 

@@ -4,14 +4,17 @@
 class Player:
     """Classe gérant les infos des joueurs"""
 
-    def __init__(self, number, address):
+    def __init__(self, number):
         self.number = number
-        self.address = address
+        self.idThread = None
+        self.chatCom = None
+        self.gameCom = None
         self.bot = None
 
     def send(self, msg):
-        self.address.send(msg.encode("utf-8"))
+        self.chatCom.send(msg.encode("utf-8"))
 
     def __repr__(self):
-        info = f"Numéro: {self.number}, address: {self.address}, bot: {self.bot}"
+        info = (f"Numéro: {self.number}, id: {self.idThread} chatCom: "
+                f"{self.chatCom}, gameCom: {self.gameCom} bot: {self.bot}")
         return info
