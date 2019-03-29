@@ -3,7 +3,8 @@
 from Tools import *
 from MapSelect import *
 from Data import playerIcon, playerIconUsed
-
+import pickle
+import time
 
 class TurnAndTurn:
 
@@ -248,16 +249,14 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
         # Au premier tour, donne les indications sur la méthode pour entrer
         # les mouvements
         if self._playersInfos[bot]["turnNumber"][0] == 1:
-            sock.send(("\nVous avez choisi le niveau: {0}\n\n{1}\n\nVous pouvez \
-déplacer le robot à l'aide des commande:\
-\n  -N: pour aller vers le nord.\n  -S: pour aller vers le Sud.\n  -O: pour aller \
-vers l'Ouest.\n  -E: pour aller vers l'Est.\nVous entrerez ensuite le nombre \
-de cases que vous voulez faire parcourir au robot.\n\nVous avez la possiblité de \
+            data = pickle.dumps(("info", "Vous pouvez \
+déplacer le robot à l'aide des commandes: 'N','S','O','E'.\nVous entrerez ensuite le nombre \
+de cases que vous voulez faire parcourir au robot.\nVous avez la possiblité de \
 murer une porte avec la commande M suivi de la direction.\nOu de percer un mur \
-avec la commande P et la direction.\n\nVous pouvez quittez le\
- jeu en tapant 'Q' lors du choix de la direction".format(self._titleMap, "\n".join(self._mapUsed))).encode("utf-8"))
-            #input("\nLa partie va commencer dans 5 secondes.")
-            #time.sleep(5)
+avec la commande P et la direction.\nVous pouvez quittez le\
+ jeu en tapant 'Q' lors du choix de la direction"))
+
+            sock.send(data)
 
         # On récupère la commande du joueur en vérifiant qu'il la rentre
         # correctement.
@@ -291,8 +290,10 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
             avalaibleMoveTxt += " -Percer\n"
         while boléen0 is False and moveInput[0] != "Q":
             try:
-                sock.send(("\n" + "\n".join(self._mapUsed)).encode("utf-8"))
-                sock.send(("\nChoisissez votre action:\n{}".format(avalaibleMoveTxt)).encode("utf-8"))
+                data = pickle.dumps(("map", "\n".join(self._mapUsed)))
+                sock.send(data)
+                data = pickle.dumps(("info", f"Choisissez votre action:\n{avalaibleMoveTxt}"))
+                sock.send(data)
                 move = sock.recv(1024).decode("utf-8").upper()
                 if move[0] in avalaibleMove and len(move) == 1:
                     boléen0 = True
@@ -300,9 +301,13 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
                     if move[0] == "Q":
                         return "Q"
                 else:
-                    sock.send(("Votre commande n'est pas bonne.\n").encode("utf-8"))
+                    data = pickle.dumps(("info", "Votre commande n'est pas bonne."))
+                    sock.send(data)
+                    time.sleep(2)
             except IndexError:
-                sock.send(("Votre commande n'est pas bonne.\n").encode("utf-8"))
+                data = pickle.dumps(("info", "Votre commande n'est pas bonne."))
+                sock.send(data)
+                time.sleep(2)
 
         while boléen1 is False:
             if move[0] in ["E", "O", "N", "S"]:
@@ -318,7 +323,10 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
                 if NbStep > 1:
                     while boléen1 is False and moveInput[0] != "Q":
                         try:
-                            sock.send(("Vous partez vers {0}. vous pouvez faire {1} pas. Combien souhaitez vous en faire: ".format(direction, NbStep - 1)).encode("utf-8"))
+                            data = pickle.dumps(("info", f"Vous partez vers {direction}."
+                                                 f" vous pouvez faire {NbStep - 1} pas."
+                                                 " Combien souhaitez vous en faire ?"))
+                            sock.send(data)
                             nbStep = sock.recv(1024).decode("utf-8")
                             nbStep = int(nbStep)
 
@@ -328,19 +336,26 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
                                 self._playersInfos[bot]["moveChoice"].append(moveInput)
                                 self._playersInfos[bot]["turnNumber"][1] = moveInput
                             else:
-                                sock.send("Votre saisie est invalide.\n".encode("utf-8"))
+                                data = pickle.dumps(("info", "Votre nombre est incorrect."))
+                                sock.send(data)
+                                time.sleep(2)
                         except ValueError:
-                                sock.send("Vous n'avez pas saisie un nombre.\n".encode("utf-8"))
+                            data = pickle.dumps(("info", "Vous n'avez pas saisie un nombre."))
+                            sock.send(data)
+                            time.sleep(2)
                 else:
-                    sock.send("Vous ne pouvez pas aller dans cette direction.\n".encode("utf-8"))
+                    data = pickle.dumps(("info", "Vous ne pouvez pas aller dans cette direction."))
+                    sock.send(data)
+                    time.sleep(2)
 
             elif move[0] == "M":
 
                 doors = self.surroundingsChecker(bot, "all")
                 indexList = dictIndexGetter(doors, ".")
 
-                if len(indexList) is 0:
-                    sock.send("Vous ne pouvez murer aucune porte à proximité.\n".encode("utf-8"))
+                if len(indexList) == 0:
+                    data = pickle.dumps(("info", "Vous ne pouvez murer aucune porte à proximité."))
+                    sock.send(data)
                 else:
                     direction = self.cardinalFullWord(indexList)
                     avalaibleDirectionTemp = ""
@@ -350,7 +365,10 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
 
                     avalaibleDirection = avalaibleDirectionTemp[:-2]
                     while boléen1 is False:
-                        sock.send("Vous avez choisi de murer. Vous pouvez le faire {}. Dans quelle direction souhaitez vous le faire: ".format(avalaibleDirection).encode("utf-8"))
+                        data = pickle.dumps(("info", f"Vous avez choisi de murer."
+                                             " Vous pouvez le faire {avalaibleDirection}. "
+                                             "Dans quelle direction souhaitez vous le faire ?"))
+                        sock.send(data)
                         wallDir = sock.recv(1024).decode("utf-8").upper()
                         if wallDir in indexList:
                             moveInput.append(wallDir)
@@ -363,8 +381,9 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
                 wall = self.surroundingsChecker(bot, "all")
                 indexList = dictIndexGetter(wall, "O")
                 if len(indexList) is 0:
-                    sock.send("Vous ne pouvez percer aucun mur à proximité.\n".encode("utf-8"))
-
+                    data = pickle.dumps(("info", "Vous ne pouvez percer aucun mur à proximité."))
+                    sock.send(data)
+                    time.sleep(2)
                 else:
                     direction = self.cardinalFullWord(indexList)
                     avalaibleDirectionTemp = ""
@@ -375,9 +394,9 @@ avec la commande P et la direction.\n\nVous pouvez quittez le\
                     avalaibleDirection = avalaibleDirectionTemp[:-2]
 
                     while boléen1 is False:
-                        sock.send("Vous avez choisi de percer. Vous \
-pouvez le faire {}. Dans quelle direction souhaitez vous le faire: \
-".format(avalaibleDirection).encode("utf-8"))
+                        data = (("info", "Vous avez choisi de percer. Vous "
+f"pouvez le faire {avalaibleDirection}. Dans quelle direction souhaitez vous le faire ?"))
+                        sock.send(data)
                         drillDir = sock.recv(1024).decode("utf-8").upper()
                         if drillDir in indexList:
                             moveInput.append(drillDir)

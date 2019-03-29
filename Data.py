@@ -6,4 +6,12 @@ manager = {"exchange": True, "continue_": True, "incomMsg": ""}
 playerIconUsed = []
 infoClient = {}
 playerDict = {}
+GUIDict = {"chatRcv": "",
+           "labiRcv": "",
+           "oldChatRcv": "",
+           "oldLabiRcv": "",
+           "chatSd": "",
+           "oldChatSd": "",
+           "labiSd": "",
+           "oldLabiSd": ""}
 msgList = [""]

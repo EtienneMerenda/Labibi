@@ -1,11 +1,15 @@
 # coding: utf-8
 
-from Data import infoClient, msgList, playerDict
+import pickle
+from Data import infoClient, playerDict
 from Server import Server, SharedInfo
 from MapSelect import MapSelect
 from Turn import TurnAndTurn
 from Player import Player
+from GUI import ClientGUI, link
+import select
 import socket
+import time
 
 # Acceptation des clients.
 # Si un Serveur est déjà en ligne, lance un client.
@@ -14,12 +18,14 @@ import socket
 try:
     server = Server()
     server.onLine()
-
-    # Selectoin de la map.
+    # Selection de la map.
 
     map = MapSelect()
     map.mapListPrinter()
     mapUsed = map.mapListSelecter()
+    mapData = ("map", map._mapChoiced)
+    data = pickle.dumps(mapData)
+    print(map._mapChoiced)
 
     print(f"Vous avez choisie la carte: {map._mapTitleProper[mapUsed[2]]}\n\n{map._mapChoiced}")
 
@@ -42,10 +48,11 @@ try:
             infoClient[id] = chatCom[0]
 
             playerDict[f"player{len(playerDict) + 1}"] = playerObject
-
+            print(playerDict)
             playerDict[f"player{len(playerDict)}"]\
                 .chatCom.send("Connexion établie".encode("utf-8"))
-            print(playerDict)
+            playerDict[f"player{len(playerDict)}"]\
+                .gameCom.send(data)
             # Envoi aux autre clients quand un message est reçu
             for player in playerDict.values():
                 if player.idThread != id:
@@ -53,12 +60,23 @@ try:
                                         "s'est connecté".encode("utf-8"))
 
         except socket.timeout:
-            if msgList[-1].upper() == "C":
-                server.searchBool = False
+            for client in playerDict.values():
+                try:
+                    rlist, wlist, xlist = select.select([client.gameCom], [], [], 0.05)
+                except select.error:
+                    pass
+                try:
+                    tmp = rlist[0].recv(1024).decode("utf-8")
+                    if tmp in ["c", "C"]:
+                        server.searchBool = False
+                except IndexError:
+                    pass
 
 except OSError:
-    import Client
-    Client.launchClient()
+    infoCom = link()
+    client = ClientGUI()
+    client.start_(infoCom[1])
+
 
 # Une fois l'acceptation des clients terminé, trie des infos pour une utilitée
 # simplifiée
@@ -73,11 +91,14 @@ print(game._mapUsed)
 
 
 for i, player in enumerate(playerDict):
-    bot = game.pastePlayer()[1]
+    (map, bot) = game.pastePlayer()
     playerDict[f"player{i + 1}"].bot = bot
-    playerDict[f"player{i + 1}"].gameCom.send(f"Vous jouez le bot: {bot} et "
-                                              f"êtes le joueur {i + 1}."
-                                              "".encode("utf-8"))
+    data = pickle.dumps(("info", f"Vous jouez le bot: {bot} et "
+                         f"êtes le joueur {i + 1}."))
+    playerDict[f"player{i + 1}"].gameCom.send(data)
+    data = pickle.dumps(("map", "\n".join(map)))
+    playerDict[f"player{i + 1}"].gameCom.send(data)
+    time.sleep(0.5)
 
 
 while 1:

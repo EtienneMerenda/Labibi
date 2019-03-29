@@ -8,6 +8,7 @@ import sys
 import time
 import select
 from Data import manager, runInput
+from GUI import ClientGUI
 
 def launchClient(host='localhost', port=12800):
 

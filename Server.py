@@ -52,11 +52,11 @@ class SharedInfo(threading.Thread):
                 self._comEnd = True
                 self._com.send("END".encode())
             else:
-                msg = f"{id}: {msgClient}"
+                msg = f"Player {id[-1]}: {msgClient}"
                 print(msg)
                 for cle in infoClient:
-                    if cle != id:
-                        infoClient[cle].send(msg.encode())
+                    #if cle != id:
+                    infoClient[cle].send(msg.encode())
             msgList.append(msgClient)
 
         self._com.close()
