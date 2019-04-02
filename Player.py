@@ -10,6 +10,7 @@ class Player:
         self.chatCom = None
         self.gameCom = None
         self.bot = None
+        self.move = ""
 
     def send(self, msg):
         self.chatCom.send(msg.encode("utf-8"))

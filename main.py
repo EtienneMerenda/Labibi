@@ -6,14 +6,17 @@ from Server import Server, SharedInfo
 from MapSelect import MapSelect
 from Turn import TurnAndTurn
 from Player import Player
-from GUI import ClientGUI, link
+from Client import ClientGUI, link
 import select
 import socket
 import time
 
+# Booléen
+
+gameBool = True
+
 # Acceptation des clients.
 # Si un Serveur est déjà en ligne, lance un client.
-
 
 try:
     server = Server()
@@ -48,7 +51,7 @@ try:
             infoClient[id] = chatCom[0]
 
             playerDict[f"player{len(playerDict) + 1}"] = playerObject
-            print(playerDict)
+            # print(playerDict)
             playerDict[f"player{len(playerDict)}"]\
                 .chatCom.send("Connexion établie".encode("utf-8"))
             playerDict[f"player{len(playerDict)}"]\
@@ -81,7 +84,6 @@ except OSError:
 # Une fois l'acceptation des clients terminé, trie des infos pour une utilitée
 # simplifiée
 
-
 game = TurnAndTurn()
 game.map_refresh(mapUsed)
 game.mapWithoutX()
@@ -89,6 +91,7 @@ print(game._mapOriginal)
 game.cleanMap()
 print(game._mapUsed)
 
+# Collage des bots et attribution des objets players.
 
 for i, player in enumerate(playerDict):
     (map, bot) = game.pastePlayer()
@@ -96,12 +99,39 @@ for i, player in enumerate(playerDict):
     data = pickle.dumps(("info", f"Vous jouez le bot: {bot} et "
                          f"êtes le joueur {i + 1}."))
     playerDict[f"player{i + 1}"].gameCom.send(data)
-    data = pickle.dumps(("map", "\n".join(map)))
+
+# envoi de la carte
+
+data = pickle.dumps(("map", "\n".join(game.getMap())))
+time.sleep(0.2)
+
+for i, player in enumerate(playerDict):
     playerDict[f"player{i + 1}"].gameCom.send(data)
-    time.sleep(0.5)
+time.sleep(3)
 
+# début des tours de jeu.
 
-while 1:
+while gameBool:
     for player in playerDict.values():
-        game.inputChoice(player.bot, player.gameCom)
-        game.move(player.bot)
+        winBool = game.move(player.bot, player.gameCom)
+        data = pickle.dumps(("info", "votre tour est terminé."))
+        player.gameCom.send(data)
+        # actualisation des cartes pour les clients
+        time.sleep(0.5)
+        data = pickle.dumps(("map", "\n".join(game.getMap())))
+        print(winBool)
+        for player in playerDict.values():
+            player.gameCom.send(data)
+
+        if winBool is True:
+            gameBool = False
+            data = pickle.dumps(("info",f"Le joueur {player.number} a gagné !!"))
+            for player in playerDict.values():
+                player.gameCom.send(data)
+            time.sleep(1)
+            data = pickle.dumps(("info", "END"))
+            for player in playerDict.values():
+                player.gameCom.send(data)
+            break
+
+print("Fin du jeu")

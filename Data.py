@@ -11,7 +11,7 @@ GUIDict = {"chatRcv": "",
            "oldChatRcv": "",
            "oldLabiRcv": "",
            "chatSd": "",
-           "oldChatSd": "",
+           "flagChatSd": "",
            "labiSd": "",
-           "oldLabiSd": ""}
+           "flagLabiSd": ""}
 msgList = [""]

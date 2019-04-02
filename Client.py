@@ -1,88 +1,198 @@
-# Définition d'un client réseau rudimentaire
-# Ce client dialogue avec un serveur ad hoc
+# -*- coding: utf-8 -*-
 
+import pickle
 import socket
 import threading
-from Tools import UnblockingInput
 import sys
 import time
 import select
 from Data import manager, runInput
-from GUI import ClientGUI
 
-def launchClient(host='localhost', port=12800):
+from tkinter import Tk, StringVar, Label, Entry
+from Data import GUIDict
 
-    host = host
-    port = port
 
-    class ThreadReception(threading.Thread):
-        """Reception object manager. works with timed reception."""
+class ThreadReception(threading.Thread):
+    """Reception object manager. works with timed reception."""
 
-        def __init__(self, com):
-            threading.Thread.__init__(self)
-            self._com = com
+    def __init__(self, com):
+        threading.Thread.__init__(self)
+        self._com = com
 
-        def run(self):
-            oldMsg = ""
-            while manager["exchange"]:
-                try:
-                    self._com.settimeout(5)
-                    manager["incomMsg"] = self._com.recv(1024).decode()
-                    self._com.settimeout(None)
-                except socket.error:
-                    pass
-                if manager["incomMsg"] != oldMsg:
-                    print(manager["incomMsg"])
-                oldMsg = manager["incomMsg"]
+    def run(self):
+        while manager["exchange"]:
+            time.sleep(0.05)
+            try:
+                self._com.settimeout(5)
+                manager["incomMsg"] = self._com.recv(1024).decode()
+                self._com.settimeout(None)
+
                 if not manager["incomMsg"] or manager["incomMsg"] == "END":
-                    print("Reception de la commande d'arret du client de la part"
-                          " du serveur")
+                    GUIDict["labiRcv"] = ("Reception de la commande "
+                                          "d'arret du client de la "
+                                          "part du serveur")
                     manager["exchange"] = False
 
-            self._com.close()
-            exit()
-
-    class ThreadSending(threading.Thread):
-        """Sending object manager. Works with input hand-made by Bibi (use msvcrt)"""
-
-        def __init__(self, com, comMove):
-
-            threading.Thread.__init__(self)
-            self._com = com
-            self._comMove = comMove
-            self.send = True
-            self.break_ = False
-
-        def run(self):
-
-            import time
-
-            while manager["exchange"]:
-                while runInput[0]:
-                    # Start input with delay, free
-                    self.sendingMsg = UnblockingInput("Message à envoyer: ")
-                    self.sendingMsg.start()
-                    # While user don't hit 'return' or 'escp', thread stay alive.
-                    while self.sendingMsg.isAlive():
-                        time.sleep(0.1)
-                        if manager["incomMsg"] is "Q":
-                            print("Le client va se fermer sur demande de"
-                                  "l'utilisateur.")
-                            manager["exchange"] = False
-
-                            self._com.send("Q".encode())
-
-                    msg = self.sendingMsg.getInput()
-                    self._com.send(msg.encode())
+                else:
+                    GUIDict["chatRcv"] = manager["incomMsg"]
+                    GUIDict["flagChatRcv"] = True
 
 
-        def interupt(self):
-            """Function called when user close the windows"""
-            self._com.send("Q".encode())
-            sys.exit(0)
+            except socket.error:
+                pass
 
-        def is_Alive(self):
-            return self.sendingMsg.isAlive()
+        self._com.close()
+        exit()
+
+
+class ThreadSending(threading.Thread):
+    """Sending object manager. Works with input hand-made by Bibi (use msvcrt)"""
+
+    def __init__(self, com, comMove):
+
+        threading.Thread.__init__(self)
+        self._com = com
+        self._comMove = comMove
+        self.send = True
+        self.break_ = False
+
+    def run(self):
+
+        while manager["exchange"]:
+            time.sleep(0.05)
+            if GUIDict["flagChatSd"] is True:
+                self._com.send(GUIDict["chatSd"].encode("utf-8"))
+                GUIDict["flagChatSd"] = False
+                if manager["incomMsg"] == "Q":
+                    GUIDict["labiRcv"] = ("Le client va se fermer sur "
+                                          "demande de l'utilisateur.")
+                    manager["exchange"] = False
+                    self._com.send("Q".encode())
+            elif GUIDict["flagLabiSd"] is True:
+                self._comMove.send(GUIDict["labiSd"].encode("utf-8"))
+                print("envoyé")
+                GUIDict["flagLabiSd"] = False
+
+class ClientGUI():
+
+    def __init__(self):
+
+        self.win = Tk()
+        self.win.geometry("960x600")
+        self.win.grid()
+        self.win.title("Seveur RobCo")
+
+        self.userEntry = StringVar()
+        self.userEntryLabibi = StringVar()
+        self.chatRcv = StringVar()
+        self.labibiRcv = StringVar()
+
+        GUIDict["chatRcv"] = ""
+        GUIDict["labiRcv"] = ""
+        GUIDict["flagChatRcv"] = ""
+        GUIDict["oldLabiRcv"] = ""
+        GUIDict["chatSd"] = ""
+        GUIDict["flagChatSd"] = ""
+        GUIDict["labiSd"] = ""
+        GUIDict["flagLabiSd"] = ""
+        GUIDict["labiGrid"] = ""
+        GUIDict["oldLabiGrid"] = ""
+
+        self.createWidget()
+
+    def createWidget(self):
+
+        self.labiGrid = Label(self.win, font="Consolas", text="", width=52, height=25)
+        self.labiGrid.grid(column=0, row=0, sticky="nsew")
+
+        self.labiText = Label(self.win, text="Entrez 'C' pour lancer la partie.",
+                              wraplength=350, font="Consolas")
+        self.labiText.grid(column=0, row=1)
+
+        self.inputLabibi = Entry(self.win, textvariable=self.userEntryLabibi, font="Consolas")
+        self.inputLabibi.grid(column=0, row=2, sticky="ew")
+
+        self.bothMsgRcv = Label(self.win, text="Vous êtes sur le chat de RobCop.",
+                                font="Consolas")
+        self.bothMsgRcv.grid(column=1, row=1)
+
+        self.msgRecever = Label(self.win,
+                                text="", justify="left", wraplength=350,
+                                width=52, height=25, anchor="sw", font="Consolas")
+        self.msgRecever.grid(column=1, row=0, sticky="sw")
+
+        self.input_ = Entry(self.win, textvariable=self.userEntry, font="Consolas")
+        self.input_.grid(column=1, row=2, sticky="ew")
+
+        self.win.bind("<Return>", self.getInput)
+
+    def getInput(self, event):
+        focus = self.win.focus_get()
+
+        if focus is self.input_:
+            tmp = self.userEntry.get()
+            self.userEntry.set("")
+            GUIDict["chatSd"] = tmp
+            GUIDict["flagChatSd"] = True
+
+        elif focus is self.inputLabibi:
+
+            tmp = self.userEntryLabibi.get()
+            self.userEntryLabibi.set("")
+            GUIDict["labiSd"] = tmp
+            GUIDict["flagLabiSd"] = True
+            if tmp in ["C", "c"]:
+                self.labiText["text"] = ""
+
+    def refreshChat(self):
+        if GUIDict["flagChatRcv"] is True:
+            self.msgRecever["text"] += f"\n{GUIDict['chatRcv']}"
+            GUIDict["flagChatRcv"] = False
+
+    def refreshLabi(self):
+        if GUIDict["labiRcv"] != GUIDict["oldLabiRcv"]:
+            self.labiText["text"] = GUIDict["labiRcv"]
+            GUIDict["oldLabiRcv"] = GUIDict["labiRcv"]
+
+    def refreshLabiGrid(self):
+        if GUIDict["labiGrid"] != GUIDict["oldLabiGrid"]:
+            self.labiGrid["text"] = GUIDict["labiGrid"]
+
+    def start_(self, comGame):
+
+        while True:
+            if manager["exchange"] is False:
+                sys.exit(0)
+            try:
+                rlist, wlist, xlist = select.select([comGame], [], [], 0.05)
+            except select.error:
+                pass
+            try:
+                tmp = rlist[0].recv(1024)
+                print(tmp)
+                data = pickle.loads(tmp)
+                print(data)
+                if data[0] == "map":
+                    GUIDict["labiGrid"] = data[1]
+                elif data[0] == "info":
+                    print("texte changé")
+                    GUIDict["labiRcv"] = data[1]
+                elif data[0] == "infoP":
+                    self.bothMsgRcv["text"] = data[1]
+            except IndexError:
+                pass
+
+            self.win.update_idletasks()
+            self.win.update()
+            self.refreshChat()
+            self.refreshLabi()
+            self.refreshLabiGrid()
+
+
+def link():
+
+    host = "localhost"
+    port = 12800
 
     comTchat = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     comGame = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -92,10 +202,12 @@ def launchClient(host='localhost', port=12800):
         comGame.connect((host, port))
 
     except socket.error:
-        print("La connexion a échoué.")
+        root = Tk()
+        error = Label(root, text=("La connexion a échouée. Lancez le serveur."))
+        error.grid()
+        root.update()
+        time.sleep(3)
         sys.exit()
-
-
 
     # Thread are assigned and launched
     th_E = ThreadSending(comTchat, comGame)
@@ -104,25 +216,4 @@ def launchClient(host='localhost', port=12800):
     time.sleep(0.5)
     th_E.start()
 
-    while 1:
-        if manager["exchange"] is False:
-            sys.exit(0)
-
-        try:
-            rlist, wlist, xlist = select.select([comGame], [], [], 0.05)
-        except select.error:
-            pass
-        try:
-            msg = rlist[0].recv(1024).decode("utf-8")
-            runInput[0] = False
-            print(msg)
-            while th_E.is_Alive():
-                print(time.time())
-            r = input("> oui ? :")
-            rlist[0].send(r.encode("utf-8"))
-            runInput[0] = True
-        except IndexError:
-            pass
-
-        msg = comGame.recv(1024).decode("utf-8")
-        print(msg)
+    return comTchat, comGame

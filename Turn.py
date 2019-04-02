@@ -1,10 +1,11 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 from Tools import *
 from MapSelect import *
 from Data import playerIcon, playerIconUsed
 import pickle
 import time
+
 
 class TurnAndTurn:
 
@@ -42,6 +43,12 @@ class TurnAndTurn:
             self._mapUsed = map[0].split("\n")
             self._mapChoiced = ""
             self._titleMap = ""
+
+    def getMap(self):
+        return self._mapUsed
+
+    def getLastMove(self, bot):
+        return self._playersInfos[bot]["moveChoice"][-1]
 
     def mapWithoutX(self):
         """Création d'une carte sans le "X" qui servira de base pour le collage
@@ -83,7 +90,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
 
             # Attribution des infos pour la fonction cutMe()
             self._playersInfos[bot]["oldCase"] = oldCase
-            if oldCase is ".":
+            if oldCase == ".":
                 self._playersInfos[bot]["doorSlowDown"] = True
             else:
                 self._playersInfos[bot]["doorSlowDown"] = False
@@ -101,7 +108,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
             return self._mapUsed
 
         def setDoorOrWall(bot, cmd):
-            if cmd is "door":
+            if cmd == "door":
                 self._playersInfos[bot]["turnNumber"][0] += 1
                 chaine = self._mapUsed[self._playersInfos[bot]["drilling"][0]]
                 deb = chaine[0:(self._playersInfos[bot]["drilling"][1])]
@@ -111,7 +118,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
 
                 return self._mapUsed
 
-            elif cmd is "wall":
+            elif cmd == "wall":
                 self._playersInfos[bot]["turnNumber"][0] += 1
                 chaine = self._mapUsed[self._playersInfos[bot]["walling"][0]]
                 deb = chaine[0:(self._playersInfos[bot]["walling"][1])]
@@ -121,7 +128,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
 
                 return self._mapUsed
 
-        if cmd is "newPlayer":
+        if cmd == "newPlayer":
             import random
 
             # Sélection du bot
@@ -141,13 +148,13 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
 
             return self._mapUsed, bot
 
-        elif cmd is "cut":
+        elif cmd == "cut":
             self._mapUsed = cutMe(bot)
 
-        elif cmd is "paste":
+        elif cmd == "paste":
             self._mapUsed = pasteMe(bot)
 
-        elif cmd is "wall" or cmd is "door":
+        elif cmd == "wall" or cmd is "door":
             self._mapUsed = setDoorOrWall(bot, cmd)
 
             return self._mapUsed
@@ -167,21 +174,21 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
         probedCaseList = []
         case = ""
 
-        if direction is "N":
+        if direction == "N":
             i = 1
             while case != "O" and i <= self._playersInfos[bot]["positionY"]:
                 case = self._mapUsed[self._playersInfos[bot]["positionY"] - i][self._playersInfos[bot]["positionX"]]
                 probedCaseList.append(case)
                 if case != "O":
                     i += 1
-        elif direction is "S":
+        elif direction == "S":
             i = 1
             while case != "O" and i < len(self._mapUsed) - self._playersInfos[bot]["positionY"]:
                 case = self._mapUsed[self._playersInfos[bot]["positionY"] + i][self._playersInfos[bot]["positionX"]]
                 probedCaseList.append(case)
                 if case != "O":
                     i += 1
-        elif direction is "E":
+        elif direction == "E":
             i = 1
             print(len(self._mapUsed[self._playersInfos[bot]["positionY"]]))
             print(self._playersInfos[bot]["positionX"])
@@ -191,7 +198,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
                 probedCaseList.append(case)
                 if case != "O":
                     i += 1
-        elif direction is "O":
+        elif direction == "O":
             i = 1
             while case != "O" and i <= self._playersInfos[bot]["positionX"]:
                 case = self._mapUsed[self._playersInfos[bot]["positionY"]][self._playersInfos[bot]["positionX"] - i]
@@ -199,7 +206,7 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
                 if case != "O":
                     i += 1
 
-        elif direction is "all":
+        elif direction == "all":
             probedCaseDict = {}
             i = 1
             try:
@@ -229,13 +236,13 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
  lettre"""
         fullWordList = []
         for value in list:
-            if value is "N":
+            if value == "N":
                 fullWordList.append("au Nord")
-            elif value is "S":
+            elif value == "S":
                 fullWordList.append("au Sud")
-            elif value is "E":
+            elif value == "E":
                 fullWordList.append("à l'Est")
-            elif value is "O":
+            elif value == "O":
                 fullWordList.append("à l'Ouest")
 
         if len(fullWordList) > 0:
@@ -250,13 +257,15 @@ Ajoute la case sur laquelle appliqué le bot dans son dictionnaire."""
         # les mouvements
         if self._playersInfos[bot]["turnNumber"][0] == 1:
             data = pickle.dumps(("info", "Vous pouvez \
-déplacer le robot à l'aide des commandes: 'N','S','O','E'.\nVous entrerez ensuite le nombre \
-de cases que vous voulez faire parcourir au robot.\nVous avez la possiblité de \
-murer une porte avec la commande M suivi de la direction.\nOu de percer un mur \
-avec la commande P et la direction.\nVous pouvez quittez le\
- jeu en tapant 'Q' lors du choix de la direction"))
-
+choisir une direction à l'aide des commandes: 'N','S','O','E' suivie du nb de pas, percer avec 'P'"
+", murer avec 'M'."))
             sock.send(data)
+            time.sleep(5)
+
+        else:
+            data = pickle.dumps(("info", "Vous pouvez jouer."))
+            sock.send(data)
+            time.sleep(0.5)
 
         # On récupère la commande du joueur en vérifiant qu'il la rentre
         # correctement.
@@ -266,28 +275,27 @@ avec la commande P et la direction.\nVous pouvez quittez le\
         boléen1 = False
         avalaibleMove = []
 
+        # Récupération des cases adjacentes au robot
+
         souroundingsDict = self.surroundingsChecker(bot)
         for key, value in souroundingsDict.items():
-            if value is " " or value is "." or value is "U":
+            if value == " " or value == "." or value == "U":
                 avalaibleMove.append(key)
-            if value is "." and avalaibleMove.count("M") == 0:
+            if value == "." and avalaibleMove.count("M") == 0:
                 avalaibleMove.append("M")
-            if value is "O" and avalaibleMove.count("P") == 0:
+            if value == "O" and avalaibleMove.count("P") == 0:
                 avalaibleMove.append("P")
         avalaibleMove.append("Q")
+
         avalaibleMoveTxt = ""
-        if "N" in avalaibleMove:
-            avalaibleMoveTxt += " -Aller au Nord\n"
-        if "S" in avalaibleMove:
-            avalaibleMoveTxt += " -Aller au Sud\n"
-        if "E" in avalaibleMove:
-            avalaibleMoveTxt += " -Aller à l'Est\n"
-        if "O" in avalaibleMove:
-            avalaibleMoveTxt += " -Aller à l'Ouest\n"
-        if "M" in avalaibleMove:
-            avalaibleMoveTxt += " -Murer\n"
-        if "P" in avalaibleMove:
-            avalaibleMoveTxt += " -Percer\n"
+        for lettre in avalaibleMove:
+            avalaibleMoveTxt += f" '{lettre}' "
+
+        sourrounding = self.surroundingsChecker(bot, "all")
+        indexListWall = dictIndexGetter(sourrounding, "O")
+        indexListDoor = dictIndexGetter(sourrounding, ".")
+        print('indexListDoor', indexListDoor, "indexListWall", indexListWall)
+
         while boléen0 is False and moveInput[0] != "Q":
             try:
                 data = pickle.dumps(("map", "\n".join(self._mapUsed)))
@@ -295,11 +303,67 @@ avec la commande P et la direction.\nVous pouvez quittez le\
                 data = pickle.dumps(("info", f"Choisissez votre action:\n{avalaibleMoveTxt}"))
                 sock.send(data)
                 move = sock.recv(1024).decode("utf-8").upper()
+
                 if move[0] in avalaibleMove and len(move) == 1:
                     boléen0 = True
                     moveInput[0] = move
                     if move[0] == "Q":
                         return "Q"
+
+                # Utilisateur entre une direction et un nombre de pas.
+                elif move[0] in avalaibleMove and\
+                     move[0] not in ["P", "M"] and\
+                     len(move) > 1 and move[0] != "Q":
+                    try:
+                        step = int(move[1:])
+                        caseListProbed, NbStep = self.surroundingsChecker(bot, move[0])
+
+                        if step > NbStep - 1 or step < 1:
+                            data = pickle.dumps(("info", "Vous n'avez pas rentré"
+                                                 " un nb de pas correct. Vous "
+                                                 f"pouvez faire {NbStep - 1} pas."))
+                            sock.send(data)
+                        else:
+                            boléen0 = True
+                            boléen1 = True
+                            self._playersInfos[bot]["moveChoice"].append([move[0], step])
+
+                    except ValueError:
+                        data = pickle.dumps(("info", "Vous n'avez pas rentré un nb de pas correct."))
+                        sock.send(data)
+                        time.sleep(2)
+
+                # Utilisateur entre une action et une direction.
+                elif len(move) == 2 and move[0] in ["P", "M"]:
+                    if move[0] == "P":
+                        if len(indexListWall) == 0:
+                            data = pickle.dumps(("info", "Vous ne pouvez pas percer. Aucun mur à proximité."))
+                            sock.send(data)
+                            time.sleep(2)
+                        elif move[1] not in indexListWall:
+                            data = pickle.dumps(("info", "Vous ne pouvez pas percer dans cette direction."))
+                            sock.send(data)
+                            time.sleep(2)
+                            if len(indexListWall) > 0:
+                                data = pickle.dumps(("info", "Vous pouvez percer"))
+                        else:
+                            self._playersInfos[bot]["moveChoice"].append(move)
+                            boléen0 = True
+                            boléen1 = True
+                    else:
+                        if len(indexListWall) == 0:
+                            data = pickle.dumps(("info", "Vous ne pouvez pas murer. Aucune porte à proximité."))
+                            sock.send(data)
+                            time.sleep(2)
+                        elif move[1] not in indexListDoor:
+                            data = pickle.dumps(("info", "Vous ne pouvez pas murer dans cette direction."))
+                            sock.send(data)
+                            time.sleep(2)
+                        else:
+                            self._playersInfos[bot]["moveChoice"].append(move)
+                            boléen0 = True
+                            boléen1 = True
+
                 else:
                     data = pickle.dumps(("info", "Votre commande n'est pas bonne."))
                     sock.send(data)
@@ -309,119 +373,129 @@ avec la commande P et la direction.\nVous pouvez quittez le\
                 sock.send(data)
                 time.sleep(2)
 
-        while boléen1 is False:
-            if move[0] in ["E", "O", "N", "S"]:
-                if move[0] == "N":
-                    direction = "le Nord"
-                elif move[0] == "S":
-                    direction = "le Sud"
-                elif move[0] == "E":
-                    direction = "l'Est"
-                elif move[0] == "O":
-                    direction = "l'Ouest"
-                caseListProbed, NbStep = self.surroundingsChecker(bot, move[0])
-                if NbStep > 1:
-                    while boléen1 is False and moveInput[0] != "Q":
-                        try:
-                            data = pickle.dumps(("info", f"Vous partez vers {direction}."
-                                                 f" vous pouvez faire {NbStep - 1} pas."
-                                                 " Combien souhaitez vous en faire ?"))
-                            sock.send(data)
-                            nbStep = sock.recv(1024).decode("utf-8")
-                            nbStep = int(nbStep)
+        if len(move) == 1:
 
-                            if nbStep > 0 and nbStep <= NbStep:
-                                moveInput.append(nbStep)
-                                boléen1 = True
-                                self._playersInfos[bot]["moveChoice"].append(moveInput)
-                                self._playersInfos[bot]["turnNumber"][1] = moveInput
-                            else:
-                                data = pickle.dumps(("info", "Votre nombre est incorrect."))
+            while boléen1 is False:
+                if move[0] in ["E", "O", "N", "S"]:
+                    if move[0] == "N":
+                        direction = "le Nord"
+                    elif move[0] == "S":
+                        direction = "le Sud"
+                    elif move[0] == "E":
+                        direction = "l'Est"
+                    elif move[0] == "O":
+                        direction = "l'Ouest"
+                    caseListProbed, NbStep = self.surroundingsChecker(bot, move[0])
+                    if NbStep > 1:
+                        while boléen1 is False and moveInput[0] != "Q":
+                            try:
+                                data = pickle.dumps(("info", f"Vous partez vers {direction}."
+                                                     f" vous pouvez faire {NbStep - 1} pas."
+                                                     " Combien souhaitez vous en faire ?"))
+                                sock.send(data)
+                                nbStep = sock.recv(1024).decode("utf-8")
+                                nbStep = int(nbStep)
+
+                                if nbStep > 0 and nbStep <= NbStep:
+                                    moveInput.append(nbStep)
+                                    boléen1 = True
+                                    self._playersInfos[bot]["moveChoice"].append(moveInput)
+                                    self._playersInfos[bot]["turnNumber"][1] = moveInput
+                                else:
+                                    data = pickle.dumps(("info", "Votre nombre est incorrect."))
+                                    sock.send(data)
+                                    time.sleep(2)
+                            except ValueError:
+                                data = pickle.dumps(("info", "Vous n'avez pas saisie un nombre."))
                                 sock.send(data)
                                 time.sleep(2)
-                        except ValueError:
-                            data = pickle.dumps(("info", "Vous n'avez pas saisie un nombre."))
+                    else:
+                        data = pickle.dumps(("info", "Vous ne pouvez pas aller dans cette direction."))
+                        sock.send(data)
+                        time.sleep(2)
+
+                elif move[0] == "M":
+
+                    doors = self.surroundingsChecker(bot, "all")
+                    indexList = dictIndexGetter(doors, ".")
+
+                    if len(indexList) == 0:
+                        data = pickle.dumps(("info", "Vous ne pouvez murer aucune porte à proximité."))
+                        sock.send(data)
+                    else:
+                        direction = self.cardinalFullWord(indexList)
+                        avalaibleDirectionTemp = ""
+
+                        for value in direction:
+                            avalaibleDirectionTemp += value+", "
+
+                        avalaibleDirection = avalaibleDirectionTemp[:-2]
+                        while boléen1 is False:
+                            data = pickle.dumps(("info", f"Vous avez choisi de murer."
+                                                 f" Vous pouvez le faire {avalaibleDirection}."))
                             sock.send(data)
-                            time.sleep(2)
-                else:
-                    data = pickle.dumps(("info", "Vous ne pouvez pas aller dans cette direction."))
-                    sock.send(data)
-                    time.sleep(2)
+                            wallDir = sock.recv(1024).decode("utf-8").upper()
+                            if wallDir in indexList:
+                                moveInput.append(wallDir)
+                                self._playersInfos[bot]["moveChoice"].append(moveInput)
+                                self._playersInfos[bot]["turnNumber"][1] = moveInput
+                                boléen1 = True
 
-            elif move[0] == "M":
+                elif move[0] == "P":
 
-                doors = self.surroundingsChecker(bot, "all")
-                indexList = dictIndexGetter(doors, ".")
-
-                if len(indexList) == 0:
-                    data = pickle.dumps(("info", "Vous ne pouvez murer aucune porte à proximité."))
-                    sock.send(data)
-                else:
-                    direction = self.cardinalFullWord(indexList)
-                    avalaibleDirectionTemp = ""
-
-                    for value in direction:
-                        avalaibleDirectionTemp += value+", "
-
-                    avalaibleDirection = avalaibleDirectionTemp[:-2]
-                    while boléen1 is False:
-                        data = pickle.dumps(("info", f"Vous avez choisi de murer."
-                                             " Vous pouvez le faire {avalaibleDirection}. "
-                                             "Dans quelle direction souhaitez vous le faire ?"))
+                    wall = self.surroundingsChecker(bot, "all")
+                    indexList = dictIndexGetter(wall, "O")
+                    if len(indexList) is 0:
+                        data = pickle.dumps(("info", "Vous ne pouvez percer aucun mur à proximité."))
                         sock.send(data)
-                        wallDir = sock.recv(1024).decode("utf-8").upper()
-                        if wallDir in indexList:
-                            moveInput.append(wallDir)
-                            self._playersInfos[bot]["moveChoice"].append(moveInput)
-                            self._playersInfos[bot]["turnNumber"][1] = moveInput
-                            boléen1 = True
+                        time.sleep(2)
+                    else:
+                        direction = self.cardinalFullWord(indexList)
+                        avalaibleDirectionTemp = ""
 
-            elif move[0] == "P":
+                        for value in direction:
+                            avalaibleDirectionTemp += value+", "
 
-                wall = self.surroundingsChecker(bot, "all")
-                indexList = dictIndexGetter(wall, "O")
-                if len(indexList) is 0:
-                    data = pickle.dumps(("info", "Vous ne pouvez percer aucun mur à proximité."))
-                    sock.send(data)
-                    time.sleep(2)
-                else:
-                    direction = self.cardinalFullWord(indexList)
-                    avalaibleDirectionTemp = ""
+                        avalaibleDirection = avalaibleDirectionTemp[:-2]
 
-                    for value in direction:
-                        avalaibleDirectionTemp += value+", "
+                        while boléen1 is False:
+                            data = pickle.dumps(("info", "Vous avez choisi de percer. Vous "
+    f"pouvez le faire {avalaibleDirection}."))
+                            sock.send(data)
+                            drillDir = sock.recv(1024).decode("utf-8").upper()
+                            if drillDir in indexList:
+                                moveInput.append(drillDir)
+                                self._playersInfos[bot]["moveChoice"].append(moveInput)
+                                self._playersInfos[bot]["turnNumber"][1] = moveInput
+                                boléen1 = True
 
-                    avalaibleDirection = avalaibleDirectionTemp[:-2]
-
-                    while boléen1 is False:
-                        data = (("info", "Vous avez choisi de percer. Vous "
-f"pouvez le faire {avalaibleDirection}. Dans quelle direction souhaitez vous le faire ?"))
-                        sock.send(data)
-                        drillDir = sock.recv(1024).decode("utf-8").upper()
-                        if drillDir in indexList:
-                            moveInput.append(drillDir)
-                            self._playersInfos[bot]["moveChoice"].append(moveInput)
-                            self._playersInfos[bot]["turnNumber"][1] = moveInput
-                            boléen1 = True
-
-    def passOrChoice(self, bot):
+    def passOrChoice(self, bot, sock):
         try:
-            print(self._playersInfos[bot]["moveChoice"][-1][-1])
-            if self._playersInfos[bot]["moveChoice"][-1][-1] > 0:
-                optionalCaracter = ["O", "o", "N", "n"]
-                change = inputWithCaraterConstraint("Voulez vous changer de direction ? O/N", optionalCaracter).upper()
-                print(change, type(change))
-                if change == "O":
-                    print("Je souhaite changer de déplacement")
-                    self.inputChoice(bot)
-                elif change is "N":
-                    pass
-            else:
-                self.inputChoice(bot)
-        except IndexError:
-            self.inputChoice(bot)
+            changeBool = True
+            while changeBool is True:
+                print(self._playersInfos[bot]["moveChoice"][-1][-1])
+                lastMove = self._playersInfos[bot]["moveChoice"][-1]
+                if self._playersInfos[bot]["moveChoice"][-1][-1] > 0:
+                    data = pickle.dumps(("info", f"Votre dernier coup {lastMove}.\nVoulez vous changer de direction ? O/N"))
+                    sock.send(data)
+                    change = sock.recv(1024).decode("utf-8").upper()
+                    if change == "O":
+                        print("Je souhaite changer de déplacement")
+                        self.inputChoice(bot)
+                        changeBool = False
+                    elif change == "N":
+                        print("je ne change pas de direction")
+                        pass
+                        changeBool = False
+                else:
+                    print("je lance l'input car le nb de pas = 0")
+                    self.inputChoice(bot, sock)
+                    changeBool = False
+        except (IndexError, TypeError):
+            print("IndexError, je lance l'input")
+            self.inputChoice(bot, sock)
 
-    def move(self, bot):
+    def move(self, bot, sock):
         """Va chercher le type de case vers lequel se déplace le joueur, check
 si c'est possible d'y aller et déplace le joueur"""
 
@@ -436,9 +510,13 @@ si c'est possible d'y aller et déplace le joueur"""
         # Si le bot est passé par une porte, retarde d'un tour
         if self._playersInfos[bot]["doorSlowDown"] is True:
             self._playersInfos[bot]["doorSlowDown"] = False
-            print("Le crochetage de la porte vous a fait perdre un tour.\n")
-
+            data = pickle.dumps(("info", "Le crochetage de la porte vous a fait perdre un tour."))
+            sock.send(data)
+            time.sleep(2)
         else:
+
+            self.passOrChoice(bot, sock)
+
             print(self._playersInfos[bot]["moveChoice"][-1][0])
             if self._playersInfos[bot]["moveChoice"][-1][0] in ["N", "S", "O", "E"]:
 
@@ -488,22 +566,6 @@ si c'est possible d'y aller et déplace le joueur"""
                     self._playersInfos[bot]["walling"] = (self._playersInfos[bot]["positionY"], self._playersInfos[bot]["positionX"] - 1)
 
                 self.pastePlayer(bot, "wall")
-
+        return self.win
 
         print("\n".join(self._mapUsed))
-
-#map = MapSelect()
-#map.mapListPrinter()
-#mapUsed = map.mapListSelecter()
-#game = TurnAndTurn()
-#game.map_refresh(mapUsed)
-#game.mapWithoutX()
-#print(game._mapOriginal)
-#game.cleanMap()
-#game.pastePlayer()
-#print(game._mapUsed)
-#print("\n".join(game._mapUsed))
-#print(game._playersInfos, game._playerIconUsed[0])
-#while 1:
-#    game.inputChoice(game._playerIconUsed[0])
-#    game.move(game._playerIconUsed[0])

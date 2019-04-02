@@ -117,7 +117,7 @@ def dictIndexGetter(dict, value):
     """Retourne les clefs du dictionnaire correspondant à la valeur rentrée."""
     indexList = []
     for keys, values in dict.items():
-        if values is value:
+        if values == value:
             indexList.append(keys)
 
     return indexList
